@@ -1,6 +1,6 @@
 "use client";
 
-import { FileCheck2, Search, Filter, Upload, ExternalLink } from "lucide-react";
+import { FileCheck2, Search, Filter, Upload } from "lucide-react";
 import Link from "next/link";
 import { useActivePeriod } from "@/contexts/active-period-context";
 
@@ -17,6 +17,7 @@ export default function BankBuktiPage() {
           </h1>
           <p className="text-sm text-slate-400 mt-1">
             Gudang berkas digital (SK, sertifikat, laporan, foto) yang siap ditautkan ke satu atau beberapa aktivitas.
+            {activePeriod && <span className="text-emerald-400"> (Periode: {activePeriod.name})</span>}
           </p>
         </div>
 

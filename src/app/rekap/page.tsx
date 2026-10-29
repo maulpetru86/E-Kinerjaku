@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, Download, Printer, Filter, CheckCircle } from "lucide-react";
+import { BarChart3, Download, Printer } from "lucide-react";
 import { useActivePeriod } from "@/contexts/active-period-context";
 
 export default function RekapKinerjaPage() {
@@ -16,6 +16,7 @@ export default function RekapKinerjaPage() {
           </h1>
           <p className="text-sm text-slate-400 mt-1">
             Matriks rekap per RHK dan indikator sebagai acuan pengisian resmi di portal e-Kinerja BKN.
+            {activePeriod && <span className="text-teal-400"> (Periode: {activePeriod.name})</span>}
           </p>
         </div>
 

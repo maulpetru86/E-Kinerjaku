@@ -11,11 +11,9 @@ import {
   BookOpen,
   Target,
   FileCheck2,
-  BarChart3,
   Sparkles,
   ShieldCheck,
   ArrowRight,
-  Clock,
   Layers,
 } from "lucide-react";
 

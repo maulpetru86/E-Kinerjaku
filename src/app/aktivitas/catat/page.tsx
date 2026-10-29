@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useActivePeriod } from "@/contexts/active-period-context";
 import { PlusCircle, Calendar, FileText, Upload, Sparkles, Check, ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -12,7 +12,7 @@ export default function CatatAktivitasPage() {
   const [notes, setNotes] = useState("");
   const [savedSuccess, setSavedSuccess] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     setActivityDate(new Date().toISOString().split("T")[0]);
   }, []);
 
@@ -46,6 +46,13 @@ export default function CatatAktivitasPage() {
           <p className="text-xs text-slate-400">
             Cukup tulis tanggal dan kegiatan Anda. Penautan RHK dan bukti dapat dilengkapi kemudian.
           </p>
+          {activePeriod && (
+            <div className="mt-1">
+              <span className="inline-block text-[11px] font-medium text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-800/40">
+                Periode: {activePeriod.name}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 

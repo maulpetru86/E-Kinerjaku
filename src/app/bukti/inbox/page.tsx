@@ -1,7 +1,6 @@
 "use client";
 
-import { Inbox, Upload, AlertCircle, FileCheck, Filter } from "lucide-react";
-import Link from "next/link";
+import { Inbox, Upload, AlertCircle, FileCheck } from "lucide-react";
 
 export default function KotakMasukBuktiPage() {
   return (

@@ -10,8 +10,8 @@ Dokumen ini memuat status, tahapan eksekusi terperinci, dan verifikasi fitur unt
 | :--- | :--- | :---: | :---: |
 | **Tahap 0** | Fondasi Dokumentasi & Repository Setup | **SELESAI** | 2026-10-27 |
 | **Tahap 1** | Inisialisasi Proyek, Autentikasi & Manajemen Periode | **SELESAI** | 2026-10-27 |
-| **Tahap 2** | Bank RHK & Ekstraksi Dokumen (PDF Parser + Editor) | *BERIKUTNYA* | - |
-| **Tahap 3** | Jurnal Aktivitas Cepat & Bank Bukti (Kotak Masuk + M:N) | *TERENCANA* | - |
+| **Tahap 2** | Bank RHK & Ekstraksi Dokumen (PDF Parser + Editor) | **SELESAI** | 2026-10-29 |
+| **Tahap 3** | Jurnal Aktivitas Cepat & Bank Bukti (Kotak Masuk + M:N) | *BERIKUTNYA* | - |
 | **Tahap 4** | Integrasi Asisten AI Terkontrol (Saran Metadata & RHK) | *TERENCANA* | - |
 | **Tahap 5** | Rekap Kinerja Triwulan, Pemetaan Antarperiode & Ekspor | *TERENCANA* | - |
 | **Tahap 6** | Pengujian End-to-End, Hardening Keamanan & Rilis Pribadi | *TERENCANA* | - |
@@ -47,19 +47,26 @@ Dokumen ini memuat status, tahapan eksekusi terperinci, dan verifikasi fitur unt
 
 ---
 
-### [ ] Tahap 2 — Bank RHK & Ekstraksi Dokumen
-- [ ] Skema database & migrasi tabel: `source_documents`, `rhks`, `rhk_indicators`.
-- [ ] Halaman Bank RHK:
-  - Daftar RHK utama dan tambahan terikat pada periode aktif.
-  - Detail aspek (kuantitas, kualitas, waktu) dan target capaian.
-- [ ] Fitur Unggah Dokumen PDF RHK/Evaluasi:
-  - Parser teks/tabel dari PDF.
-  - Ekstraksi informasi struktural (RHK intervensi pimpinan, RHK pegawai, indikator, target).
-- [ ] **Komponen Pratinjau & Editor Koreksi Hasil Ekstraksi:**
-  - Menampilkan hasil parse dalam tabel yang dapat diedit langsung.
-  - Konfirmasi pengguna sebelum masuk menjadi RHK resmi.
-- [ ] Penambahan & pengeditan manual RHK/indikator tanpa upload PDF.
-- [ ] Unit & integration test alur parser dan penyimpanan RHK.
+### [x] Tahap 2 — Bank RHK & Ekstraksi Dokumen
+- [x] Skema database & repositori data: tabel `source_documents`, `rhks`, `rhk_indicators` (`src/lib/db/rhk.ts` & `src/types/index.ts`).
+- [x] Validasi server-side Zod form RHK dan konfirmasi batch (`src/lib/validations/rhk.ts`).
+- [x] Mesin Ekstraksi Dokumen PDF SKP / Evaluasi BKN (`src/lib/pdf/extractor.ts`):
+  - Parser teks dokumen dengan deteksi kategori Utama vs Tambahan, RHK intervensi pimpinan, RHK individu pegawai, aspek (kuantitas, kualitas, waktu), indikator, target, dan satuan.
+  - Penegakan prinsip *Zero Hallucination*: Target yang tidak tercantum tidak dikarang (dibiarkan null untuk diisi pengguna).
+- [x] **Komponen Editor Koreksi & Pratinjau Interaktif (`ExtractionReviewModal`):**
+  - Menampilkan hasil parse dalam tabel interaktif yang dapat diedit langsung sebelum dikonfirmasi ke database.
+  - Pengguna dapat menambah, mengoreksi teks, mengubah aspek/target, atau membatalkan sebelum konfirmasi.
+- [x] Form penambahan dan pengeditan manual RHK/indikator (`RhkModal`).
+- [x] API Routes RHK:
+  - `GET /api/rhk`: Ambil daftar butir RHK terikat `periodId`.
+  - `POST /api/rhk`: Buat butir RHK manual.
+  - `PATCH/DELETE /api/rhk/[id]`: Ubah dan hapus butir RHK serta indikator terkait.
+  - `POST /api/rhk/parse-pdf`: Unggah PDF, simpan dokumen sumber asli, ekstrak struktur untuk pratinjau.
+  - `POST /api/rhk/confirm`: Konfirmasi penyimpanan batch hasil koreksi pengguna.
+- [x] Halaman Bank RHK (`src/app/rhk/page.tsx`):
+  - Daftar butir RHK terikat periode aktif, tab kategori Utama & Tambahan, pencarian cepat, tombol aksi ubah dan hapus.
+- [x] Pengujian unit test validasi dan ekstraksi PDF (`tests/rhk.test.ts`): 6 pengujian baru lolos (Total 10/10 test cases passed).
+- [x] Kualitas build produksi Next.js: 16 rute berhasil dikompilasi tanpa error.
 
 ---
 

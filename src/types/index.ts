@@ -20,6 +20,19 @@ export interface PerformancePeriod {
   updatedAt: string;
 }
 
+export interface SourceDocument {
+  id: string;
+  userId: string;
+  periodId?: string | null;
+  storageKey: string;
+  documentType: "pdf_rhk" | "pdf_evaluasi" | "other";
+  originalFilename: string;
+  importedAt: string;
+  extractionStatus: "pending" | "processing" | "completed" | "failed";
+  extractionSummary?: Record<string, unknown> | null;
+  confirmedAt?: string | null;
+}
+
 export interface RHK {
   id: string;
   userId: string;
@@ -47,6 +60,21 @@ export interface RHKIndicator {
   reviewStatus: "pending_review" | "confirmed" | "edited";
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ExtractedRHKItem {
+  tempId: string;
+  intervenedLeadRhk?: string | null;
+  individualRhk: string;
+  category: "utama" | "tambahan";
+  indicators: Array<{
+    tempId: string;
+    aspect: string | null;
+    indicatorText: string;
+    targetValue?: string | null;
+    targetUnit?: string | null;
+    targetPeriodText?: string | null;
+  }>;
 }
 
 export interface Activity {

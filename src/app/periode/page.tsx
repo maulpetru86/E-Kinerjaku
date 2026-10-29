@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useActivePeriod } from "@/contexts/active-period-context";
-import { PerformancePeriod, PeriodStatus } from "@/types";
+import { PeriodStatus } from "@/types";
 import { formatDateIndo, cn } from "@/lib/utils";
 import {
   Calendar,
@@ -14,7 +14,6 @@ import {
   X,
   Trash2,
   Check,
-  Tag,
 } from "lucide-react";
 
 export default function PeriodePage() {

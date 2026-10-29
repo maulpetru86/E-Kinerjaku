@@ -15,7 +15,12 @@ const ActivePeriodContext = createContext<ActivePeriodContextType | undefined>(u
 
 export function ActivePeriodProvider({ children }: { children: React.ReactNode }) {
   const [periods, setPeriods] = useState<PerformancePeriod[]>([]);
-  const [activePeriodId, setActivePeriodIdState] = useState<string | null>(null);
+  const [activePeriodId, setActivePeriodIdState] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("kinerjaku_active_period");
+    }
+    return null;
+  });
   const [isLoading, setIsLoading] = useState(true);
 
   const refreshPeriods = useCallback(async () => {
@@ -25,22 +30,53 @@ export function ActivePeriodProvider({ children }: { children: React.ReactNode }
       const json = await res.json();
       if (json.success && Array.isArray(json.data)) {
         setPeriods(json.data);
-        // Jika belum ada activePeriodId yang dipilih, pilih yang status 'active' pertama
-        if (!activePeriodId && json.data.length > 0) {
+        setActivePeriodIdState((prev) => {
+          if (prev && json.data.some((p: PerformancePeriod) => p.id === prev)) {
+            return prev;
+          }
           const active = json.data.find((p: PerformancePeriod) => p.status === "active") || json.data[0];
-          setActivePeriodIdState(active.id);
-        }
+          return active ? active.id : null;
+        });
       }
     } catch (err) {
       console.error("Gagal memuat data periode:", err);
     } finally {
       setIsLoading(false);
     }
-  }, [activePeriodId]);
+  }, []);
 
   useEffect(() => {
-    refreshPeriods();
-  }, [refreshPeriods]);
+    let ignore = false;
+    async function loadInitial() {
+      try {
+        const res = await fetch("/api/periods");
+        const json = await res.json();
+        if (!ignore && json.success && Array.isArray(json.data)) {
+          setPeriods(json.data);
+          setActivePeriodIdState((prev) => {
+            if (prev && json.data.some((p: PerformancePeriod) => p.id === prev)) {
+              return prev;
+            }
+            const active = json.data.find((p: PerformancePeriod) => p.status === "active") || json.data[0];
+            return active ? active.id : null;
+          });
+        }
+      } catch (err) {
+        if (!ignore) {
+          console.error("Gagal memuat data periode:", err);
+        }
+      } finally {
+        if (!ignore) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadInitial();
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const setActivePeriodId = (id: string) => {
     setActivePeriodIdState(id);
@@ -48,16 +84,6 @@ export function ActivePeriodProvider({ children }: { children: React.ReactNode }
       localStorage.setItem("kinerjaku_active_period", id);
     }
   };
-
-  // Coba ambil dari localStorage saat mount
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("kinerjaku_active_period");
-      if (saved) {
-        setActivePeriodIdState(saved);
-      }
-    }
-  }, []);
 
   const activePeriod = periods.find((p) => p.id === activePeriodId) || periods[0] || null;
 

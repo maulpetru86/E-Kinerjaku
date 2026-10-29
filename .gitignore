@@ -11,6 +11,9 @@
 # testing & coverage
 /coverage
 
+# local database & file storage
+/.data/
+
 # misc
 .DS_Store
 *.pem
