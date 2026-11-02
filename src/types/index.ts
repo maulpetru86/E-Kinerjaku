@@ -77,6 +77,33 @@ export interface ExtractedRHKItem {
   }>;
 }
 
+export interface ActivityEvidenceLink {
+  id: string;
+  activityId: string;
+  evidenceFileId: string;
+  createdAt: string;
+}
+
+export interface ActivityRhkLink {
+  id: string;
+  activityId: string;
+  rhkId: string;
+  indicatorId?: string | null;
+  linkSource: "user" | "ai_suggested" | "import";
+  confirmedAt: string;
+  notes?: string | null;
+}
+
+export interface RhkEvidenceLink {
+  id: string;
+  rhkId: string;
+  indicatorId?: string | null;
+  evidenceFileId: string;
+  linkSource: "user" | "ai_suggested" | "import";
+  confirmedAt: string;
+  notes?: string | null;
+}
+
 export interface Activity {
   id: string;
   userId: string;
@@ -121,6 +148,16 @@ export interface EvidenceFile {
   // Attached relations
   linkedActivitiesCount?: number;
   linkedRhksCount?: number;
+  linkedActivities?: Array<{
+    activityId: string;
+    description: string;
+    activityDate: string;
+  }>;
+  linkedRhks?: Array<{
+    rhkId: string;
+    individualRhk: string;
+    indicatorId?: string | null;
+  }>;
 }
 
 export interface AISuggestion {

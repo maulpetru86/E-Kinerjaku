@@ -1,5 +1,5 @@
-import { RHK, RHKIndicator, SourceDocument } from "@/types";
-import { RHKFormValues, RHKBatchConfirmValues } from "@/lib/validations/rhk";
+import type { RHK, RHKIndicator, SourceDocument } from "@/types";
+import type { RHKFormValues, RHKBatchConfirmValues } from "../validations/rhk.ts";
 import fs from "fs";
 import path from "path";
 
