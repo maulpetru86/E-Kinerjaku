@@ -70,22 +70,38 @@ Dokumen ini memuat status, tahapan eksekusi terperinci, dan verifikasi fitur unt
 
 ---
 
-### [ ] Tahap 3 — Jurnal Aktivitas & Bank Bukti Dukung (M:N Linking)
-- [ ] Skema database & migrasi: `activities`, `evidence_files`, `activity_rhk_links`, `activity_evidence_links`, `rhk_evidence_links`.
-- [ ] **Form Catat Aktivitas Cepat (Mobile-First):**
-  - Minimal field: `tanggal` (default hari ini) & `deskripsi kegiatan`.
-  - Opsional: Pemilihan RHK/indikator dan opsi lampiran bukti.
-  - Dapat disimpan tanpa RHK (masuk kategori belum terhubung).
-- [ ] **Modul Kotak Masuk Bukti (Evidence Inbox):**
-  - Unggah multi-file (gambar/foto, PDF, dokumen).
-  - Tampilan berkas yang belum dikategorikan.
-  - Fitur kategorisasi per berkas dan batch linking.
-- [ ] **Modul Bank Bukti:**
-  - Grid & list view bukti dukung dengan pencarian dan filter tanggal/periode.
-  - Fitur Many-to-Many: 1 berkas dapat ditautkan ke beberapa kegiatan dan beberapa RHK tanpa re-upload.
-  - Pratinjau aman melalui short-lived signed URL.
-  - Restriksi penghapusan berkas jika masih ditautkan ke aktivitas.
-- [ ] Integration test pengunggahan file dan relasi M:N.
+### [x] Tahap 3 — Jurnal Aktivitas & Bank Bukti Dukung (M:N Linking)
+- [x] Skema database & models: `activities`, `evidence_files`, `activity_rhk_links`, `activity_evidence_links`, `rhk_evidence_links` di `src/types/index.ts`.
+- [x] Validasi Zod Server-Side: `src/lib/validations/activity.ts` dan `src/lib/validations/evidence.ts`.
+- [x] Repositori Database & Penyimpanan Berkas:
+  - `src/lib/db/activities.ts`: CRUD aktivitas, relasi ke RHK & berkas, otomatisasi status kategorisasi.
+  - `src/lib/db/evidence.ts`: CRUD berkas bukti, checksum SHA-256 untuk deteksi duplikasi, penyimpanan fisik ke `.data/evidence_uploads/`, relasi M:N, dan proteksi hapus jika masih ditautkan.
+- [x] API Routes Lengkap:
+  - `GET /api/activities`, `POST /api/activities`
+  - `GET /api/activities/[id]`, `PATCH /api/activities/[id]`, `DELETE /api/activities/[id]`
+  - `GET /api/evidence`, `POST /api/evidence` (multi-file upload)
+  - `GET /api/evidence/[id]`, `PATCH /api/evidence/[id]`, `DELETE /api/evidence/[id]`
+  - `GET /api/evidence/[id]/file` (streaming berkas privat inline / download attachment)
+  - `POST /api/evidence/link` (single & batch linking M:N)
+- [x] **Form Catat Aktivitas Cepat (`src/app/aktivitas/catat/page.tsx`):**
+  - Minimal field: `tanggal` (default hari ini via client hydration-safe) & `deskripsi kegiatan`.
+  - Opsional: Pemilihan RHK periode aktif, waktu, dan catatan hasil.
+  - Simpan tanpa RHK otomatis berstatus *Belum Terkategori* (`uncategorized`); simpan dengan RHK otomatis berstatus *Terhubung RHK* (`categorized`).
+- [x] **Halaman Jurnal Aktivitas (`src/app/aktivitas/page.tsx`):**
+  - Kartu kronologis aktivitas dengan badge status kategorisasi, jumlah RHK dan bukti terlampir.
+  - Filter tab (Semua, Belum Terkategori, Terhubung RHK, Perlu Ditinjau) & pencarian teks debounced.
+  - Modal ubah aktivitas dan dialog konfirmasi hapus aman.
+- [x] **Modul Kotak Masuk Bukti (`src/app/bukti/inbox/page.tsx`):**
+  - Unggah multi-file (drag & drop dropzone + file browser) hingga 15MB/berkas.
+  - Monitoring progres upload per berkas.
+  - Pratinjau langsung di tab baru dan opsi unduh aman via API file streaming.
+- [x] **Modul Bank Bukti Dukung (`src/app/bukti/page.tsx`):**
+  - Grid & list view bukti dukung dengan pencarian dan filter status review.
+  - Fitur Many-to-Many: 1 berkas dapat ditautkan ke banyak kegiatan & RHK tanpa re-upload.
+  - Badge counter penautan ("N aktivitas, M RHK").
+  - Restriksi penghapusan berkas jika masih ditautkan ke aktivitas atau RHK.
+- [x] Unit & Integration Tests: 7 tes baru (`tests/activity.test.ts` & `tests/evidence.test.ts`), total 17/17 PASS.
+- [x] Kualitas build produksi Next.js: 22 rute berhasil dikompilasi tanpa error.
 
 ---
 
