@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useActivePeriod } from "@/contexts/active-period-context";
 import { formatDateIndo } from "@/lib/utils";
@@ -15,10 +16,65 @@ import {
   ShieldCheck,
   ArrowRight,
   Layers,
+  Loader2,
 } from "lucide-react";
+import type { Activity, EvidenceFile, RHK } from "@/types";
 
 export default function DashboardPage() {
   const { activePeriod } = useActivePeriod();
+
+  // Metrics state
+  const [metrics, setMetrics] = useState({
+    unreadEvidence: 0,
+    activitiesCount: 0,
+    rhkCount: 0,
+    totalEvidence: 0,
+  });
+  const [isLoadingMetrics, setIsLoadingMetrics] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoadingMetrics(true);
+
+    const fetchAllMetrics = async () => {
+      try {
+        const periodParam = activePeriod?.id ? `?periodId=${activePeriod.id}` : "";
+
+        const [resAct, resRhk, resEv] = await Promise.all([
+          fetch(`/api/activities${periodParam}`).then((r) => r.json()).catch(() => ({ success: false })),
+          activePeriod?.id
+            ? fetch(`/api/rhk?periodId=${activePeriod.id}`).then((r) => r.json()).catch(() => ({ success: false }))
+            : Promise.resolve({ success: true, data: [] }),
+          fetch("/api/evidence").then((r) => r.json()).catch(() => ({ success: false })),
+        ]);
+
+        if (isMounted) {
+          const activities: Activity[] = resAct.success && Array.isArray(resAct.data) ? resAct.data : [];
+          const rhks: RHK[] = resRhk.success && Array.isArray(resRhk.data) ? resRhk.data : [];
+          const evidence: EvidenceFile[] = resEv.success && Array.isArray(resEv.data) ? resEv.data : [];
+
+          const unreadEvidence = evidence.filter((e) => e.reviewStatus === "new").length;
+
+          setMetrics({
+            unreadEvidence,
+            activitiesCount: activities.length,
+            rhkCount: rhks.length,
+            totalEvidence: evidence.length,
+          });
+        }
+      } catch (err) {
+        console.error("Gagal memuat metrik dashboard:", err);
+      } finally {
+        if (isMounted) setIsLoadingMetrics(false);
+      }
+    };
+
+    fetchAllMetrics();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activePeriod?.id]);
 
   return (
     <div className="space-y-6">
@@ -89,7 +145,13 @@ export default function DashboardPage() {
             </span>
           </div>
           <div className="mt-3">
-            <div className="text-2xl font-bold text-white">0</div>
+            <div className="text-2xl font-bold text-white flex items-center gap-2">
+              {isLoadingMetrics ? (
+                <Loader2 className="w-5 h-5 animate-spin text-slate-500" />
+              ) : (
+                metrics.unreadEvidence
+              )}
+            </div>
             <div className="text-xs text-slate-400 mt-0.5">Bukti Belum Dikategorikan</div>
           </div>
         </Link>
@@ -108,7 +170,13 @@ export default function DashboardPage() {
             </span>
           </div>
           <div className="mt-3">
-            <div className="text-2xl font-bold text-white">0</div>
+            <div className="text-2xl font-bold text-white flex items-center gap-2">
+              {isLoadingMetrics ? (
+                <Loader2 className="w-5 h-5 animate-spin text-slate-500" />
+              ) : (
+                metrics.activitiesCount
+              )}
+            </div>
             <div className="text-xs text-slate-400 mt-0.5">Aktivitas Tercatat</div>
           </div>
         </Link>
@@ -127,7 +195,13 @@ export default function DashboardPage() {
             </span>
           </div>
           <div className="mt-3">
-            <div className="text-2xl font-bold text-white">0</div>
+            <div className="text-2xl font-bold text-white flex items-center gap-2">
+              {isLoadingMetrics ? (
+                <Loader2 className="w-5 h-5 animate-spin text-slate-500" />
+              ) : (
+                metrics.rhkCount
+              )}
+            </div>
             <div className="text-xs text-slate-400 mt-0.5">RHK Terdaftar</div>
           </div>
         </Link>
@@ -146,7 +220,13 @@ export default function DashboardPage() {
             </span>
           </div>
           <div className="mt-3">
-            <div className="text-2xl font-bold text-white">0</div>
+            <div className="text-2xl font-bold text-white flex items-center gap-2">
+              {isLoadingMetrics ? (
+                <Loader2 className="w-5 h-5 animate-spin text-slate-500" />
+              ) : (
+                metrics.totalEvidence
+              )}
+            </div>
             <div className="text-xs text-slate-400 mt-0.5">Total Berkas Tersimpan</div>
           </div>
         </Link>
