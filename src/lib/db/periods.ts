@@ -1,5 +1,5 @@
-import { PerformancePeriod } from "@/types";
-import { PeriodFormValues } from "@/lib/validations/period";
+import type { PerformancePeriod } from "../../types/index.ts";
+import type { PeriodFormValues } from "../validations/period.ts";
 import fs from "fs";
 import path from "path";
 

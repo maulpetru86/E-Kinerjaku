@@ -192,3 +192,4 @@ export function SuggestionCard({ suggestion, onReviewed }: SuggestionCardProps) 
     </div>
   );
 }
+

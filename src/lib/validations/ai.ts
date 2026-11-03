@@ -20,3 +20,4 @@ export const ReviewSuggestionSchema = z.object({
 export type AnalyzeActivityValues = z.infer<typeof AnalyzeActivitySchema>;
 export type AnalyzeEvidenceValues = z.infer<typeof AnalyzeEvidenceSchema>;
 export type ReviewSuggestionValues = z.infer<typeof ReviewSuggestionSchema>;
+

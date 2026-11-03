@@ -172,3 +172,61 @@ export interface AISuggestion {
   createdAt: string;
   reviewedAt?: string | null;
 }
+
+// ── Tipe Pemetaan RHK Antarperiode (FR-10) ───────────────────────────────────
+export interface RhkMapping {
+  id: string;
+  userId: string;
+  oldPeriodId: string;
+  newPeriodId: string;
+  oldRhkId: string;
+  newRhkId: string;
+  similarityScore?: number | null;
+  mappingStatus: "suggested" | "confirmed" | "rejected";
+  confirmedAt?: string | null;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  // Hydrated relation details
+  oldRhk?: RHK;
+  newRhk?: RHK;
+}
+
+// ── Tipe Rekap Kinerja & Matriks Capaian (FR-09 & FR-11) ──────────────────────
+export type RekapReadinessStatus =
+  | "belum_ada_bukti"
+  | "ada_bukti"
+  | "perlu_ditinjau"
+  | "siap_direkap";
+
+export interface RekapIndicatorItem {
+  indicator: RHKIndicator;
+  readinessStatus: RekapReadinessStatus;
+  activities: Activity[];
+  evidenceFiles: EvidenceFile[];
+}
+
+export interface RekapRhkItem {
+  rhk: RHK;
+  indicators: RekapIndicatorItem[];
+  totalActivitiesCount: number;
+  totalEvidenceCount: number;
+  overallStatus: RekapReadinessStatus;
+}
+
+export interface RekapSummary {
+  totalRhk: number;
+  totalActivities: number;
+  totalEvidence: number;
+  countSiapDirekap: number;
+  countPerluDitinjau: number;
+  countAdaBukti: number;
+  countBelumAdaBukti: number;
+}
+
+export interface RekapMatriks {
+  period: PerformancePeriod;
+  items: RekapRhkItem[];
+  summary: RekapSummary;
+}
+

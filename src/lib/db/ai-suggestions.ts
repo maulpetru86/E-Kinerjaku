@@ -243,3 +243,4 @@ export async function deleteAISuggestion(
   saveAISuggestions(filtered);
   return true;
 }
+

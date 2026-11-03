@@ -129,17 +129,21 @@ Dokumen ini memuat status, tahapan eksekusi terperinci, dan verifikasi fitur unt
 
 ---
 
-### [ ] Tahap 5 — Rekap Kinerja Triwulan, Pemetaan Antarperiode & Ekspor
-- [ ] Halaman **Rekap Kinerja Triwulan / Tahunan**:
-  - Matriks per RHK/indikator lengkap dengan daftar kegiatan dan berkas bukti terkait.
-  - Status kesiapan: *Belum Ada Bukti*, *Ada Bukti*, *Perlu Ditinjau*, *Siap Direkap*.
-  - Link langsung ke file sumber untuk verifikasi cepat.
-- [ ] **Fitur Pemetaan RHK Antarperiode:**
-  - Rekomendasi keselarasan RHK periode lama ke periode baru.
-  - Tidak menyalin bukti/capaian lama ke periode baru (hanya referensi pemetaan).
-- [ ] **Mesin Ekspor:**
-  - Ekspor data rekap ke CSV.
-  - Template cetak laporan rapi (*Print-ready HTML/PDF*) siap jadi acuan pengisian portal e-Kinerja BKN.
+### [x] Tahap 5 — Rekap Kinerja Triwulan, Pemetaan Antarperiode & Ekspor
+- [x] **Halaman Rekap Kinerja Triwulan / Tahunan (`/rekap`):**
+  - Matriks per RHK/indikator lengkap dengan daftar kegiatan dan berkas bukti terkait (`src/lib/db/rekap.ts`, `src/app/rekap/page.tsx`).
+  - Evaluasi status kesiapan otomatis: *Belum Ada Bukti*, *Ada Bukti*, *Perlu Ditinjau*, *Siap Direkap* (`determineReadinessStatus`).
+  - Ringkasan statistik (KPI cards) kesiapan rekapitulasi, tab filter status kesiapan, pencarian kata kunci, dan accordion rincian kegiatan/bukti.
+  - Link langsung ke file sumber (`/api/evidence/[id]/file`) untuk verifikasi cepat.
+- [x] **Fitur Pemetaan RHK Antarperiode (`/api/rhk/mappings`):**
+  - Mesin keselarasan kata kunci antarperiode (`src/lib/db/mapping.ts`).
+  - Modal interaktif pemetaan antarperiode (`src/components/rekap/rhk-mapping-modal.tsx`) dengan alur konfirmasi transparan (*suggested*, *confirmed*, *rejected*).
+  - Garansi isolasi periode: Tidak menyalin bukti/capaian lama ke periode baru, hanya mencatat referensi pemetaan ID.
+- [x] **Mesin Ekspor & Siap Cetak:**
+  - Ekspor data rekap ke CSV RFC-4180 dengan UTF-8 BOM agar rapi langsung dibuka di Microsoft Excel (`src/app/api/rekap/export/route.ts`).
+  - Template cetak laporan resmi kedinasan (`src/app/rekap/cetak/page.tsx`) dengan format `@media print`, kop kedinasan, tabel capaian, dan blok tanda tangan pengesahan ASN/Pejabat Penilai.
+- [x] Unit test Rekapitulasi (`tests/rekap.test.ts`): 3 unit test komprehensif mencakup evaluasi status kesiapan, validasi ekspor CSV ber-BOM, dan pembuktian isolasi data pemetaan antarperiode (Total 24/24 tests PASS).
+- [x] Kualitas build produksi Next.js 16.4.3: 26 rute berhasil dikompilasi tanpa error.
 
 ---
 

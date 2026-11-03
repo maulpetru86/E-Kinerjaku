@@ -2,7 +2,7 @@ import type {
   EvidenceFile,
   ActivityEvidenceLink,
   RhkEvidenceLink,
-} from "@/types";
+} from "../../types/index.ts";
 import type { EvidenceUpdateValues } from "../validations/evidence.ts";
 import fs from "fs";
 import path from "path";
@@ -73,6 +73,10 @@ function readJsonFile<T>(filePath: string, fallback: T): T {
   }
   try {
     const raw = fs.readFileSync(filePath, "utf-8");
+    if (!raw || !raw.trim()) {
+      fs.writeFileSync(filePath, JSON.stringify(fallback, null, 2), "utf-8");
+      return fallback;
+    }
     return JSON.parse(raw);
   } catch (error) {
     console.error(`Gagal membaca ${filePath}:`, error);
