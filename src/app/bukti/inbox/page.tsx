@@ -17,8 +17,10 @@ import {
   Eye,
   Download,
   ChevronRight,
+  Sparkles,
 } from "lucide-react";
-import type { EvidenceFile } from "@/types";
+import { SuggestionCard } from "@/components/ai/suggestion-card";
+import type { EvidenceFile, AISuggestion } from "@/types";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatBytes(bytes: number): string {
@@ -65,11 +67,24 @@ interface UploadProgress {
 // ── Kartu berkas inbox ────────────────────────────────────────────────────────
 interface InboxCardProps {
   file: EvidenceFile;
+  suggestions: AISuggestion[];
+  isAnalyzing: boolean;
+  onTriggerAI: (fileId: string) => void;
+  onSuggestionReviewed: (suggestion: AISuggestion, action: "accept" | "reject") => void;
   onRemoved: (id: string) => void;
 }
 
-function InboxFileCard({ file, onRemoved }: InboxCardProps) {
-  const [isRemoving, setIsRemoving] = useState(false);
+function InboxFileCard({
+  file,
+  suggestions,
+  isAnalyzing,
+  onTriggerAI,
+  onSuggestionReviewed,
+  onRemoved,
+}: InboxCardProps) {
+  const pendingSuggestions = suggestions.filter(
+    (s) => s.entityId === file.id && s.status === "pending"
+  );
 
   const handleView = () => {
     window.open(`/api/evidence/${file.id}/file?disposition=inline`, "_blank");
@@ -83,7 +98,7 @@ function InboxFileCard({ file, onRemoved }: InboxCardProps) {
   };
 
   return (
-    <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 hover:border-slate-700 transition-colors group">
+    <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 hover:border-slate-700 transition-colors group space-y-3">
       <div className="flex items-start gap-3">
         <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center flex-shrink-0">
           <FileIcon mimeType={file.mimeType} />
@@ -99,17 +114,48 @@ function InboxFileCard({ file, onRemoved }: InboxCardProps) {
                 Tgl bukti: {new Date(file.evidenceDate).toLocaleDateString("id-ID")}
               </span>
             )}
+            {pendingSuggestions.length > 0 && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-950/70 text-indigo-400 border border-indigo-700/40 animate-pulse">
+                <Sparkles className="w-3 h-3" /> Usulan AI Siap
+              </span>
+            )}
           </div>
           {file.userDescription && (
             <p className="text-xs text-slate-400 mt-1 line-clamp-2">{file.userDescription}</p>
           )}
-          <p className="text-[11px] text-slate-600 mt-1">
-            Diunggah {new Date(file.uploadedAt).toLocaleString("id-ID")}
-          </p>
+          <div className="mt-2 flex items-center gap-3 text-[11px] text-slate-600">
+            <span>Diunggah {new Date(file.uploadedAt).toLocaleString("id-ID")}</span>
+            <button
+              type="button"
+              disabled={isAnalyzing}
+              onClick={() => onTriggerAI(file.id)}
+              className="flex items-center gap-1 text-indigo-400 hover:text-indigo-300 font-medium transition-colors ml-auto disabled:opacity-50"
+            >
+              {isAnalyzing ? (
+                <>
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <span>Menganalisis...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3 h-3" />
+                  <span>Analisis dengan AI</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Actions */}
         <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+          <button
+            onClick={() => onTriggerAI(file.id)}
+            disabled={isAnalyzing}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-400 hover:bg-slate-800 disabled:opacity-50"
+            title="Analisis metadata dengan AI"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+          </button>
           <button
             onClick={handleView}
             className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
@@ -126,6 +172,19 @@ function InboxFileCard({ file, onRemoved }: InboxCardProps) {
           </button>
         </div>
       </div>
+
+      {/* Pending AI Suggestions for this evidence file */}
+      {pendingSuggestions.length > 0 && (
+        <div className="space-y-2 pt-1 border-t border-slate-800/60">
+          {pendingSuggestions.map((sug) => (
+            <SuggestionCard
+              key={sug.id}
+              suggestion={sug}
+              onReviewed={onSuggestionReviewed}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -136,33 +195,41 @@ export default function KotakMasukBuktiPage() {
   const dropzoneRef = useRef<HTMLDivElement>(null);
 
   const [files, setFiles] = useState<EvidenceFile[]>([]);
+  const [suggestions, setSuggestions] = useState<AISuggestion[]>([]);
+  const [analyzingIds, setAnalyzingIds] = useState<string[]>([]);
+
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadBatch, setUploadBatch] = useState<UploadProgress[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadGlobalMsg, setUploadGlobalMsg] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  // ── Fetch inbox files ─────────────────────────────────────────────────────
-  const fetchInbox = useCallback(async () => {
+  // ── Fetch inbox files & suggestions ───────────────────────────────────────
+  const fetchInboxAndSuggestions = useCallback(async () => {
     setIsLoading(true);
     setFetchError(null);
     try {
-      // Inbox = semua berkas (bisa difilter ke "new" + "needs_review", tapi tampilkan semua untuk kemudahan)
-      const res = await fetch("/api/evidence");
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        setFetchError(json.message || "Gagal memuat berkas.");
+      const [resFiles, resSug] = await Promise.all([
+        fetch("/api/evidence").then((r) => r.json()),
+        fetch("/api/ai/suggestions?entityType=evidence_file&status=pending").then((r) => r.json()).catch(() => ({ success: false })),
+      ]);
+
+      if (!resFiles.ok && !resFiles.success) {
+        setFetchError(resFiles.message || "Gagal memuat berkas.");
         return;
       }
-      // Sort terbaru dulu
-      const sorted = [...(json.data ?? [])].sort(
+
+      const sorted = [...(resFiles.data ?? [])].sort(
         (a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
       );
       setFiles(sorted);
+
+      if (resSug.success && Array.isArray(resSug.data)) {
+        setSuggestions(resSug.data);
+      }
     } catch {
       setFetchError("Gagal terhubung ke server.");
     } finally {
@@ -171,8 +238,58 @@ export default function KotakMasukBuktiPage() {
   }, []);
 
   useEffect(() => {
-    fetchInbox();
-  }, [fetchInbox]);
+    fetchInboxAndSuggestions();
+  }, [fetchInboxAndSuggestions]);
+
+  // ── Trigger AI Analysis for Evidence File ──────────────────────────────────
+  const handleTriggerAIEvidence = async (evidenceFileId: string) => {
+    if (analyzingIds.includes(evidenceFileId)) return;
+    setAnalyzingIds((prev) => [...prev, evidenceFileId]);
+    setUploadError(null);
+
+    try {
+      const res = await fetch("/api/ai/analyze-evidence", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ evidenceFileId }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setUploadError(json.message || "Gagal menganalisis berkas dengan AI.");
+        return;
+      }
+
+      if (json.data) {
+        setSuggestions((prev) => [
+          json.data,
+          ...prev.filter((s) => s.id !== json.data.id),
+        ]);
+        setUploadSuccess(json.message || "Usulan metadata dari AI siap ditinjau.");
+        setTimeout(() => setUploadSuccess(null), 4000);
+      }
+    } catch {
+      setUploadError("Gagal terhubung ke server saat menganalisis berkas.");
+    } finally {
+      setAnalyzingIds((prev) => prev.filter((id) => id !== evidenceFileId));
+    }
+  };
+
+  // ── Handle Reviewed Suggestion ─────────────────────────────────────────────
+  const handleSuggestionReviewed = async (
+    updatedSuggestion: AISuggestion,
+    action: "accept" | "reject"
+  ) => {
+    setSuggestions((prev) => prev.filter((s) => s.id !== updatedSuggestion.id));
+
+    if (action === "accept") {
+      setUploadSuccess("Usulan AI diterima! Metadata berkas bukti telah diperbarui.");
+      await fetchInboxAndSuggestions();
+    } else {
+      setUploadSuccess("Usulan AI ditolak. Berkas bukti Anda tetap utuh.");
+    }
+    setTimeout(() => setUploadSuccess(null), 3500);
+  };
 
   // ── Upload handler ────────────────────────────────────────────────────────
   const uploadFiles = useCallback(
@@ -183,7 +300,6 @@ export default function KotakMasukBuktiPage() {
       setIsUploading(true);
       setUploadError(null);
       setUploadSuccess(null);
-      setUploadGlobalMsg(null);
       setUploadBatch(fileArray.map((f) => ({ name: f.name, status: "uploading" })));
 
       try {
@@ -202,8 +318,7 @@ export default function KotakMasukBuktiPage() {
         setUploadBatch((prev) => prev.map((p) => ({ ...p, status: "done" as const })));
         setUploadSuccess(json.message || `${fileArray.length} berkas berhasil diunggah.`);
 
-        // Refresh list
-        await fetchInbox();
+        await fetchInboxAndSuggestions();
         setTimeout(() => {
           setUploadBatch([]);
           setUploadSuccess(null);
@@ -216,7 +331,7 @@ export default function KotakMasukBuktiPage() {
         if (fileInputRef.current) fileInputRef.current.value = "";
       }
     },
-    [fetchInbox]
+    [fetchInboxAndSuggestions]
   );
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -264,13 +379,13 @@ export default function KotakMasukBuktiPage() {
       <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 flex items-start gap-3">
         <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
         <div>
-          <span className="font-semibold text-white">Filosofi Kotak Masuk:</span> Unggah dahulu, rapikan kemudian. Satu berkas dapat ditautkan ke banyak aktivitas dan RHK tanpa perlu diunggah ulang.
+          <span className="font-semibold text-white">Filosofi Kotak Masuk:</span> Unggah dahulu, rapikan kemudian. Satu berkas dapat ditautkan ke banyak aktivitas dan RHK tanpa perlu diunggah ulang. Anda juga dapat menggunakan asisten AI untuk mengekstrak tanggal dan ringkasan usulan secara otomatis.
         </div>
       </div>
 
       {/* Upload Success */}
       {uploadSuccess && (
-        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm flex items-start gap-2.5">
+        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm flex items-start gap-2.5 animate-in fade-in">
           <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
           <p>{uploadSuccess}</p>
         </div>
@@ -278,7 +393,7 @@ export default function KotakMasukBuktiPage() {
 
       {/* Upload Error */}
       {uploadError && (
-        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-sm flex items-start gap-2.5">
+        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-sm flex items-start gap-2.5 animate-in fade-in">
           <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
           <p>{uploadError}</p>
           <button onClick={() => setUploadError(null)} className="ml-auto text-slate-500 hover:text-white flex-shrink-0">
@@ -352,7 +467,7 @@ export default function KotakMasukBuktiPage() {
           <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-2" />
           <p className="text-sm text-red-300">{fetchError}</p>
           <button
-            onClick={fetchInbox}
+            onClick={fetchInboxAndSuggestions}
             className="mt-3 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 font-medium"
           >
             Coba Lagi
@@ -380,6 +495,10 @@ export default function KotakMasukBuktiPage() {
             <InboxFileCard
               key={file.id}
               file={file}
+              suggestions={suggestions}
+              isAnalyzing={analyzingIds.includes(file.id)}
+              onTriggerAI={handleTriggerAIEvidence}
+              onSuggestionReviewed={handleSuggestionReviewed}
               onRemoved={(id) => setFiles((prev) => prev.filter((f) => f.id !== id))}
             />
           ))}

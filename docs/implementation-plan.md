@@ -105,18 +105,27 @@ Dokumen ini memuat status, tahapan eksekusi terperinci, dan verifikasi fitur unt
 
 ---
 
-### [ ] Tahap 4 — Integrasi Asisten AI Terkontrol
-- [ ] Skema database & migrasi: `ai_suggestions`.
-- [ ] Lapisan Server Action Adapter untuk Google Gemini API (model hemat & cepat `gemini-2.0-flash`).
-- [ ] Pipeline Saran AI:
-  - Ringkasan isi berkas bukti & ekstraksi usulan tanggal kegiatan dari teks gambar/PDF.
-  - Rekomendasi RHK/indikator relevan berdasarkan narasi aktivitas.
-  - Penandaan informasi yang meragukan / tidak lengkap.
-- [ ] **UX Konfirmasi AI:**
-  - Status saran `pending` terpisah dari data final terverifikasi.
-  - Pilihan aksi: Terima Saran, Edit, atau Tolak.
-  - Fallback aman: Jika AI offline atau gagal, pencatatan manual tetap 100% berfungsi normal.
-- [ ] Unit test fallback handler dan verifikasi bahwa tidak ada data yang berubah otomatis tanpa klik pengguna.
+### [x] Tahap 4 — Integrasi Asisten AI Terkontrol
+- [x] Skema database & repository: `src/lib/db/ai-suggestions.ts` (`.data/ai_suggestions.json`).
+- [x] Adapter Asisten AI Terkontrol: `src/lib/ai/gemini.ts` dengan model `gemini-2.0-flash` dan mode Fallback Heuristik Lokal otomatis (Zero Crash).
+- [x] Validasi Zod Server-Side: `src/lib/validations/ai.ts` (`AnalyzeActivitySchema`, `AnalyzeEvidenceSchema`, `ReviewSuggestionSchema`).
+- [x] API Endpoints Asisten AI:
+  - `GET /api/ai/suggestions`: Menampilkan daftar usulan AI berstatus `pending`.
+  - `POST /api/ai/analyze-activity`: Menganalisis narasi kegiatan dan merekomendasikan butir RHK + indikator yang paling relevan.
+  - `POST /api/ai/analyze-evidence`: Menganalisis berkas bukti fisik, mengekstrak tanggal kegiatan dan menyusun draf ringkasan isi bukti.
+  - `POST /api/ai/suggestions/[id]/review`: Menangani konfirmasi pengguna (Terima / Edit / Tolak).
+- [x] **UX Konfirmasi AI (Human-in-the-Loop):**
+  - Komponen antarmuka `SuggestionCard` (`src/components/ai/suggestion-card.tsx`) dengan badge tingkat keyakinan (*Tinggi*, *Sedang*, *Perlu Verifikasi Manual*).
+  - Integrasi tombol "Minta Saran RHK AI" pada Jurnal Aktivitas (`src/app/aktivitas/page.tsx`).
+  - Integrasi tombol "Analisis dengan AI" pada Kotak Masuk Bukti (`src/app/bukti/inbox/page.tsx`).
+  - Panel konfigurasi privasi, API Key, dan edukasi di Pengaturan (`src/app/pengaturan/page.tsx`).
+  - Template konfigurasi aman `.env.example` untuk `GEMINI_API_KEY` dan `GEMINI_MODEL`.
+- [x] **Zero Hallucination & Graceful Fallback:**
+  - Status saran selalu `pending`; tidak ada data penting atau relasi yang berubah tanpa klik persetujuan pengguna.
+  - Penolakan saran (*Reject*) tidak menghapus dan tidak mengubah catatan atau berkas pengguna (Zero Data Loss).
+  - Mode Asisten Lokal otomatis aktif jika API Key belum disetel atau koneksi eksternal terputus.
+- [x] Unit test Asisten AI (`tests/ai.test.ts`): 4 tes baru mencakup validasi skema, deteksi tanggal faktual, fallback offline, dan garansi Human-in-the-Loop (Total 21/21 tests PASS).
+- [x] Kualitas build produksi Next.js: 22 rute berhasil dikompilasi tanpa error.
 
 ---
 

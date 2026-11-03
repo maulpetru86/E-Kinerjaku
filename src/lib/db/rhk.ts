@@ -140,10 +140,10 @@ function saveSourceDocs(docs: SourceDocument[]) {
   fs.writeFileSync(SOURCE_DOCS_FILE, JSON.stringify(docs, null, 2), "utf-8");
 }
 
-export async function getRhks(periodId: string, userId: string = "user-default-1"): Promise<RHK[]> {
+export async function getRhks(periodId?: string, userId: string = "user-default-1"): Promise<RHK[]> {
   const all = readRhks();
   return all
-    .filter((r) => r.userId === userId && r.periodId === periodId)
+    .filter((r) => r.userId === userId && (!periodId || r.periodId === periodId))
     .sort((a, b) => {
       // Utama di atas, Tambahan di bawah
       if (a.category !== b.category) {

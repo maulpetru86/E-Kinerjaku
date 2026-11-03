@@ -19,14 +19,14 @@ import {
   Save,
   Paperclip,
   Eye,
-  Download,
   File,
   FileImage,
   Archive,
-  Plus,
+  Sparkles,
 } from "lucide-react";
 import { useActivePeriod } from "@/contexts/active-period-context";
-import type { Activity, EvidenceFile } from "@/types";
+import { SuggestionCard } from "@/components/ai/suggestion-card";
+import type { Activity, EvidenceFile, AISuggestion } from "@/types";
 
 // ── Tipe filter tab ──────────────────────────────────────────────────────────
 type FilterStatus = "all" | "uncategorized" | "categorized" | "needs_review";
@@ -404,24 +404,35 @@ function EditActivityModal({ activity, onClose, onSaved }: EditModalProps) {
 // ── Kartu Aktivitas ───────────────────────────────────────────────────────────
 interface ActivityCardProps {
   activity: Activity;
+  suggestions: AISuggestion[];
+  isAnalyzingAI: boolean;
   onEdit: (a: Activity) => void;
   onDelete: (id: string) => void;
   onLinkEvidence: (a: Activity) => void;
   onUnlinkEvidence: (activityId: string, evidenceFileId: string) => void;
+  onTriggerAI: (activityId: string) => void;
+  onSuggestionReviewed: (suggestion: AISuggestion, action: "accept" | "reject") => void;
 }
 
 function ActivityCard({
   activity,
+  suggestions,
+  isAnalyzingAI,
   onEdit,
   onDelete,
   onLinkEvidence,
   onUnlinkEvidence,
+  onTriggerAI,
+  onSuggestionReviewed,
 }: ActivityCardProps) {
   const rhkCount = activity.rhkLinks?.length ?? 0;
   const evidenceLinks = activity.evidenceLinks ?? [];
+  const pendingSuggestions = suggestions.filter(
+    (s) => s.entityId === activity.id && s.status === "pending"
+  );
 
   return (
-    <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 hover:border-slate-700 transition-colors group">
+    <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 hover:border-slate-700 transition-colors group space-y-3">
       <div className="flex items-start gap-3">
         {/* Date column */}
         <div className="flex-shrink-0 text-center min-w-[52px] pt-0.5">
@@ -437,9 +448,14 @@ function ActivityCard({
         </div>
 
         <div className="flex-1 min-w-0">
-          {/* Status badge */}
-          <div className="mb-1.5">
+          {/* Status badge & AI badge */}
+          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <CategorizationBadge status={activity.categorizationStatus} />
+            {pendingSuggestions.length > 0 && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-950/70 text-indigo-400 border border-indigo-700/40 animate-pulse">
+                <Sparkles className="w-3 h-3" /> Ada Usulan AI
+              </span>
+            )}
           </div>
 
           {/* Description */}
@@ -454,7 +470,7 @@ function ActivityCard({
 
           {/* Linked Evidence Files Chips */}
           {evidenceLinks.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-2.5 flex flex-wrap gap-2">
               {evidenceLinks.map((link) => {
                 const file = link.file;
                 const fileName = file?.originalFilename || `Berkas ${link.evidenceFileId.slice(0, 8)}`;
@@ -491,7 +507,7 @@ function ActivityCard({
             </div>
           )}
 
-          {/* Meta row */}
+          {/* Meta row & quick actions */}
           <div className="mt-2.5 flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
             {activity.activityTime && <span>{activity.activityTime}</span>}
             {rhkCount > 0 && (
@@ -510,14 +526,42 @@ function ActivityCard({
               {evidenceLinks.length > 0 ? "Kelola Bukti" : "+ Tautkan Bukti"}
             </button>
 
+            {/* AI Suggestion Trigger Button */}
+            <button
+              type="button"
+              disabled={isAnalyzingAI}
+              onClick={() => onTriggerAI(activity.id)}
+              className="flex items-center gap-1 text-indigo-400 hover:text-indigo-300 font-medium transition-colors disabled:opacity-50"
+            >
+              {isAnalyzingAI ? (
+                <>
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <span>Menganalisis...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3 h-3" />
+                  <span>Minta Saran RHK AI</span>
+                </>
+              )}
+            </button>
+
             <span className="text-slate-600 ml-auto">
               {formatDate(activity.activityDate)}
             </span>
           </div>
         </div>
 
-        {/* Actions */}
+        {/* Action icons */}
         <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+          <button
+            onClick={() => onTriggerAI(activity.id)}
+            disabled={isAnalyzingAI}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-400 hover:bg-slate-800 disabled:opacity-50"
+            title="Minta Rekomendasi RHK dari AI"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+          </button>
           <button
             onClick={() => onLinkEvidence(activity)}
             className="p-1.5 rounded-lg text-slate-400 hover:text-amber-400 hover:bg-slate-800"
@@ -541,6 +585,19 @@ function ActivityCard({
           </button>
         </div>
       </div>
+
+      {/* Pending AI Suggestions for this activity */}
+      {pendingSuggestions.length > 0 && (
+        <div className="space-y-2 pt-1 border-t border-slate-800/60">
+          {pendingSuggestions.map((sug) => (
+            <SuggestionCard
+              key={sug.id}
+              suggestion={sug}
+              onReviewed={onSuggestionReviewed}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -550,6 +607,9 @@ export default function JurnalAktivitasPage() {
   const { activePeriod } = useActivePeriod();
 
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [suggestions, setSuggestions] = useState<AISuggestion[]>([]);
+  const [analyzingIds, setAnalyzingIds] = useState<string[]>([]);
+
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
@@ -565,8 +625,8 @@ export default function JurnalAktivitasPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
-  // ── Fetch activities ────────────────────────────────────────────────────────
-  const fetchActivities = useCallback(async () => {
+  // ── Fetch activities & AI suggestions ───────────────────────────────────────
+  const fetchActivitiesAndSuggestions = useCallback(async () => {
     setIsLoading(true);
     setFetchError(null);
     try {
@@ -575,13 +635,20 @@ export default function JurnalAktivitasPage() {
       if (filterStatus !== "all") params.set("status", filterStatus);
       if (search) params.set("search", search);
 
-      const res = await fetch(`/api/activities?${params.toString()}`);
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        setFetchError(json.message || "Gagal memuat jurnal aktivitas.");
+      const [resAct, resSug] = await Promise.all([
+        fetch(`/api/activities?${params.toString()}`).then((r) => r.json()),
+        fetch(`/api/ai/suggestions?entityType=activity&status=pending`).then((r) => r.json()).catch(() => ({ success: false })),
+      ]);
+
+      if (!resAct.ok && !resAct.success) {
+        setFetchError(resAct.message || "Gagal memuat jurnal aktivitas.");
         return;
       }
-      setActivities(json.data ?? []);
+
+      setActivities(resAct.data ?? []);
+      if (resSug.success && Array.isArray(resSug.data)) {
+        setSuggestions(resSug.data);
+      }
     } catch {
       setFetchError("Gagal terhubung ke server. Periksa koneksi Anda.");
     } finally {
@@ -590,14 +657,71 @@ export default function JurnalAktivitasPage() {
   }, [activePeriod?.id, filterStatus, search]);
 
   useEffect(() => {
-    fetchActivities();
-  }, [fetchActivities]);
+    fetchActivitiesAndSuggestions();
+  }, [fetchActivitiesAndSuggestions]);
 
   // ── Debounce search ─────────────────────────────────────────────────────────
   const handleSearchChange = (val: string) => {
     setSearchInput(val);
     if (searchTimer.current) clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(() => setSearch(val), 400);
+  };
+
+  // ── Trigger AI Analysis for Activity ────────────────────────────────────────
+  const handleTriggerAI = async (activityId: string) => {
+    if (analyzingIds.includes(activityId)) return;
+    setAnalyzingIds((prev) => [...prev, activityId]);
+    setActionError(null);
+
+    try {
+      const res = await fetch("/api/ai/analyze-activity", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          activityId,
+          periodId: activePeriod?.id,
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setActionError(json.message || "Gagal mendapatkan saran AI.");
+        return;
+      }
+
+      if (json.data) {
+        setSuggestions((prev) => [
+          json.data,
+          ...prev.filter((s) => s.id !== json.data.id),
+        ]);
+        setActionSuccess("Rekomendasi RHK dari AI berhasil disiapkan. Silakan tinjau sebelum menerima.");
+      } else {
+        setActionSuccess(json.message || "AI tidak menemukan butir RHK yang cocok secara spesifik.");
+      }
+
+      setTimeout(() => setActionSuccess(null), 4000);
+    } catch {
+      setActionError("Gagal terhubung ke server saat menganalisis aktivitas.");
+    } finally {
+      setAnalyzingIds((prev) => prev.filter((id) => id !== activityId));
+    }
+  };
+
+  // ── Suggestion Reviewed Handler ─────────────────────────────────────────────
+  const handleSuggestionReviewed = async (
+    updatedSuggestion: AISuggestion,
+    action: "accept" | "reject"
+  ) => {
+    setSuggestions((prev) => prev.filter((s) => s.id !== updatedSuggestion.id));
+
+    if (action === "accept") {
+      setActionSuccess("Saran AI diterima dan RHK berhasil ditautkan ke aktivitas.");
+      // Refresh daftar aktivitas agar relasi RHK ter-update
+      await fetchActivitiesAndSuggestions();
+    } else {
+      setActionSuccess("Saran AI ditolak. Data kegiatan Anda tidak berubah.");
+    }
+    setTimeout(() => setActionSuccess(null), 3500);
   };
 
   // ── Delete handler ──────────────────────────────────────────────────────────
@@ -645,7 +769,6 @@ export default function JurnalAktivitasPage() {
         return;
       }
 
-      // Update local state
       setActivities((prev) =>
         prev.map((act) => {
           if (act.id !== activityId) return act;
@@ -696,12 +819,12 @@ export default function JurnalAktivitasPage() {
 
       {/* Messages */}
       {actionSuccess && (
-        <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
+        <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in">
           <Check className="w-4 h-4 flex-shrink-0" /> {actionSuccess}
         </div>
       )}
       {actionError && (
-        <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs flex items-center gap-2">
+        <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs flex items-center gap-2 animate-in fade-in">
           <AlertCircle className="w-4 h-4 flex-shrink-0" /> {actionError}
           <button onClick={() => setActionError(null)} className="ml-auto text-slate-500 hover:text-white">
             <X className="w-4 h-4" />
@@ -790,7 +913,7 @@ export default function JurnalAktivitasPage() {
           <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-2" />
           <p className="text-sm text-red-300">{fetchError}</p>
           <button
-            onClick={fetchActivities}
+            onClick={fetchActivitiesAndSuggestions}
             className="mt-3 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 font-medium"
           >
             Coba Lagi
@@ -829,10 +952,14 @@ export default function JurnalAktivitasPage() {
             <ActivityCard
               key={activity.id}
               activity={activity}
+              suggestions={suggestions}
+              isAnalyzingAI={analyzingIds.includes(activity.id)}
               onEdit={setEditingActivity}
               onDelete={handleDelete}
               onLinkEvidence={setLinkingActivity}
               onUnlinkEvidence={handleUnlinkEvidence}
+              onTriggerAI={handleTriggerAI}
+              onSuggestionReviewed={handleSuggestionReviewed}
             />
           ))}
         </div>
