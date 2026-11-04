@@ -42,7 +42,7 @@ function getInitialPeriods(): PerformancePeriod[] {
   ];
 }
 
-function readPeriods(): PerformancePeriod[] {
+export function readPeriods(): PerformancePeriod[] {
   ensureDataDir();
   if (!fs.existsSync(PERIODS_FILE)) {
     const initial = getInitialPeriods();
@@ -58,7 +58,7 @@ function readPeriods(): PerformancePeriod[] {
   }
 }
 
-function savePeriods(periods: PerformancePeriod[]) {
+export function savePeriods(periods: PerformancePeriod[]) {
   ensureDataDir();
   fs.writeFileSync(PERIODS_FILE, JSON.stringify(periods, null, 2), "utf-8");
 }

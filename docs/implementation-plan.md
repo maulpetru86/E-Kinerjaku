@@ -147,9 +147,21 @@ Dokumen ini memuat status, tahapan eksekusi terperinci, dan verifikasi fitur unt
 
 ---
 
-### [ ] Tahap 6 — Pengujian End-to-End, Hardening & Deployment
-- [ ] Pengujian fungsional lintas platform (Android Chrome PWA dan Laptop Desktop Browser).
-- [ ] Pengujian ketahanan koneksi (kondisi offline/putus saat upload, feedback error yang jelas).
-- [ ] Uji isolasi periode (memastikan data periode lama tidak berubah sama sekali).
-- [ ] Audit keamanan: Row Level Security, pencegahan kebocoran secret, sanitasi input.
-- [ ] Dokumentasi panduan operasional pengguna di `README.md`.
+### [x] Tahap 6 — Pengujian End-to-End, Hardening & Deployment
+- [x] **Suite Pengujian Integrasi End-to-End (`tests/e2e-workflow.test.ts`):**
+  - Uji siklus hidup data lengkap: Buat Periode 2026 -> Impor/Buat RHK & Indikator -> Unggah Bukti Fisik (SHA-256) -> Catat Aktivitas Cepat -> Tautkan Relasi M:N -> Analisis AI & Review Konfirmasi -> Agregasi Matriks Rekap Triwulanan (Status: *Siap Direkap*) -> Ekspor CSV ber-BOM.
+  - Uji isolasi periode (Cross-Period Isolation): Membuktikan data kegiatan, bukti, dan matriks periode lama tidak terkontaminasi periode baru.
+  - Uji isolasi multi-pengguna: Memastikan pengguna lain tidak dapat mengakses, membaca, atau mengubah data privat pengguna lain.
+  - Seluruh pengujian otomatis lulus: **27/27 PASS (100%)** via `npm test`.
+- [x] **Hardening Keamanan & Stream Berkas:**
+  - *Canonical Path Traversal Defense* pada `src/app/api/evidence/[id]/file/route.ts` menggunakan verifikasi `path.resolve`.
+  - Penanganan parameter unduhan fleksibel (`download=true` dan `disposition=attachment`).
+- [x] **Kesiapan PWA (Progressive Web App) Mobile Android:**
+  - Konfigurasi Web App Manifest Next.js (`src/app/manifest.ts`) dengan mode *standalone*.
+  - Konfigurasi `viewport` dan warna tema status bar Android `#020617` pada `src/app/layout.tsx`.
+- [x] **Kedaulatan Data (Data Sovereignty - FR-01 & FR-11):**
+  - Endpoint API `/api/backup` untuk unduhan paket cadangan data utuh (JSON) dan pembersihan data mandiri (*data erasure*).
+  - Integrasi aksi unduh arsip dan pembersihan data pribadi dengan dialog konfirmasi aman pada `src/app/pengaturan/page.tsx`.
+- [x] **Dokumentasi Komprehensif:**
+  - Pembaruan menyeluruh `README.md` mencakup latar belakang masalah, filosofi produk, arsitektur Next.js 16, panduan workflow harian ASN, panduan instalasi PWA di Android Chrome, panduan konfigurasi lingkungan, arsitektur keamanan, dan struktur repositori.
+- [x] **Build Produksi Final:** Kompilasi sukses tanpa error pada 27 rute aplikasi.

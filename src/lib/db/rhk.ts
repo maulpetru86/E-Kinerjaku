@@ -99,7 +99,7 @@ function getInitialRhks(): RHK[] {
   ];
 }
 
-function readRhks(): RHK[] {
+export function readRhks(): RHK[] {
   ensureDataDir();
   if (!fs.existsSync(RHKS_FILE)) {
     const initial = getInitialRhks();
@@ -115,7 +115,7 @@ function readRhks(): RHK[] {
   }
 }
 
-function saveRhks(rhks: RHK[]) {
+export function saveRhks(rhks: RHK[]) {
   ensureDataDir();
   fs.writeFileSync(RHKS_FILE, JSON.stringify(rhks, null, 2), "utf-8");
 }

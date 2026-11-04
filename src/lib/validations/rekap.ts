@@ -26,3 +26,4 @@ export const RhkAutoMappingSchema = z.object({
 export type RekapQueryValues = z.infer<typeof RekapQuerySchema>;
 export type RhkMappingFormValues = z.infer<typeof RhkMappingFormSchema>;
 export type RhkAutoMappingValues = z.infer<typeof RhkAutoMappingSchema>;
+

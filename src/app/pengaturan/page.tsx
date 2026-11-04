@@ -1,11 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Settings, Shield, Database, Sparkles, Download, Trash2, Check, Key, HelpCircle, AlertCircle } from "lucide-react";
+import { Settings, Shield, Database, Sparkles, Download, Trash2, Check, Key, HelpCircle, AlertCircle, Loader2 } from "lucide-react";
 
 export default function PengaturanPage() {
   const [enableAI, setEnableAI] = useState(true);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isWiping, setIsWiping] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("kinerjaku_enable_ai");
@@ -19,6 +22,57 @@ export default function PengaturanPage() {
     localStorage.setItem("kinerjaku_enable_ai", String(val));
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2500);
+  };
+
+  const handleDownloadBackup = async () => {
+    setIsDownloading(true);
+    setStatusMessage(null);
+    try {
+      const res = await fetch("/api/backup");
+      if (!res.ok) throw new Error("Gagal mengunduh cadangan");
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `kinerjaku_backup_${new Date().toISOString().split("T")[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      setStatusMessage({ type: "success", text: "Berkas cadangan JSON berhasil diunduh." });
+    } catch {
+      setStatusMessage({ type: "error", text: "Terjadi kesalahan saat mengunduh cadangan." });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handleWipeData = async () => {
+    const confirmed = window.confirm(
+      "PERINGATAN KEDAULATAN DATA:\n\nSeluruh aktivitas, berkas bukti fisik, dan pemetaan RHK pribadi Anda akan dihapus secara permanen.\n\nApakah Anda yakin ingin melanjutkan penghapusan data?"
+    );
+    if (!confirmed) return;
+
+    setIsWiping(true);
+    setStatusMessage(null);
+    try {
+      const res = await fetch("/api/backup", { method: "DELETE" });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || "Gagal menghapus data");
+      }
+      setStatusMessage({
+        type: "success",
+        text: "Seluruh data pribadi berhasil dibersihkan dari penyimpanan.",
+      });
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (err: any) {
+      setStatusMessage({ type: "error", text: err.message || "Gagal membersihkan data pribadi." });
+    } finally {
+      setIsWiping(false);
+    }
   };
 
   return (
@@ -117,16 +171,49 @@ export default function PengaturanPage() {
           </p>
 
           <div className="flex flex-wrap gap-3 pt-2">
-            <button className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition-colors">
-              <Download className="w-4 h-4 text-emerald-400" />
-              <span>Unduh Arsip Cadangan (JSON/CSV)</span>
+            <button
+              onClick={handleDownloadBackup}
+              disabled={isDownloading || isWiping}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 border border-slate-700 text-xs font-semibold transition-colors"
+            >
+              {isDownloading ? (
+                <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
+              ) : (
+                <Download className="w-4 h-4 text-emerald-400" />
+              )}
+              <span>{isDownloading ? "Menyiapkan Arsip..." : "Unduh Arsip Cadangan (JSON)"}</span>
             </button>
 
-            <button className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-semibold transition-colors">
-              <Trash2 className="w-4 h-4" />
-              <span>Hapus Data Pribadi</span>
+            <button
+              onClick={handleWipeData}
+              disabled={isDownloading || isWiping}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 disabled:opacity-50 text-rose-400 border border-rose-500/30 text-xs font-semibold transition-colors"
+            >
+              {isWiping ? (
+                <Loader2 className="w-4 h-4 animate-spin text-rose-400" />
+              ) : (
+                <Trash2 className="w-4 h-4" />
+              )}
+              <span>{isWiping ? "Membersihkan Data..." : "Hapus Data Pribadi"}</span>
             </button>
           </div>
+
+          {statusMessage && (
+            <div
+              className={`p-3.5 rounded-xl text-xs flex items-center gap-2 animate-in fade-in ${
+                statusMessage.type === "success"
+                  ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-300"
+                  : "bg-red-500/10 border border-red-500/30 text-red-300"
+              }`}
+            >
+              {statusMessage.type === "success" ? (
+                <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+              ) : (
+                <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+              )}
+              <span>{statusMessage.text}</span>
+            </div>
+          )}
         </div>
       </div>
     </div>

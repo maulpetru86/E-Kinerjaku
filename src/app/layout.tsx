@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/layout/app-shell";
@@ -13,10 +13,23 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  themeColor: "#020617",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
+
 export const metadata: Metadata = {
   title: "KinerjaKu — Asisten Pribadi Bukti e-Kinerja",
   description:
     "Catat sekali, siapkan bukti sepanjang waktu. Asisten pribadi pencatatan aktivitas dan bank bukti dukung e-Kinerja.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "KinerjaKu",
+  },
 };
 
 export default function RootLayout({

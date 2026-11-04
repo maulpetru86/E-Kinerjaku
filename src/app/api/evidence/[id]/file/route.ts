@@ -11,7 +11,9 @@ export async function GET(
     const { id } = await params;
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId") || "user-default-1";
-    const download = searchParams.get("download") === "true";
+    const isDownload =
+      searchParams.get("download") === "true" ||
+      searchParams.get("disposition") === "attachment";
 
     const evidence = await getEvidenceById(id, userId);
     if (!evidence) {
@@ -21,7 +23,18 @@ export async function GET(
       );
     }
 
+    const resolvedUploadDir = path.resolve(EVIDENCE_UPLOADS_DIR);
     const filePath = path.join(EVIDENCE_UPLOADS_DIR, evidence.storageKey);
+    const resolvedFilePath = path.resolve(filePath);
+
+    // Defense-in-depth: Cegah manipulasi Path Traversal
+    if (!resolvedFilePath.startsWith(resolvedUploadDir)) {
+      return NextResponse.json(
+        { success: false, message: "Akses berkas ditolak (Path Traversal terdeteksi)" },
+        { status: 403 }
+      );
+    }
+
     if (!fs.existsSync(filePath)) {
       return NextResponse.json(
         { success: false, message: "File fisik tidak ditemukan pada penyimpanan" },
@@ -30,7 +43,7 @@ export async function GET(
     }
 
     const fileBuffer = fs.readFileSync(filePath);
-    const disposition = download ? "attachment" : "inline";
+    const disposition = isDownload ? "attachment" : "inline";
 
     return new NextResponse(fileBuffer, {
       status: 200,
@@ -42,7 +55,10 @@ export async function GET(
         )}"`,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.digest === "NEXT_PRERENDER_INTERRUPTED") {
+      throw error;
+    }
     console.error("API GET /api/evidence/[id]/file error:", error);
     return NextResponse.json(
       { success: false, message: "Terjadi kesalahan saat mengalirkan berkas" },

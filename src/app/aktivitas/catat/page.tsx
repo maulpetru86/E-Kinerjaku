@@ -304,7 +304,7 @@ export default function CatatAktivitasPage() {
         <div className="p-3.5 rounded-xl bg-emerald-500/5 border border-emerald-500/20 text-xs text-slate-400 flex items-center gap-2.5">
           <Sparkles className="w-4 h-4 text-emerald-400 flex-shrink-0" />
           <span>
-            Asisten AI akan siap di Tahap 4 untuk merekomendasikan indikator RHK yang pas dengan catatan Anda.
+            Asisten AI siap membantu menganalisis dan merekomendasikan indikator RHK yang pas setelah aktivitas disimpan.
           </span>
         </div>
 
