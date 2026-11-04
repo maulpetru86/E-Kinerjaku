@@ -13,6 +13,7 @@ import {
   Archive,
   Settings,
   Sparkles,
+  GraduationCap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useActivePeriod } from "@/contexts/active-period-context";
@@ -27,6 +28,7 @@ const navItems = [
   { name: "Rekap Kinerja", href: "/rekap", icon: BarChart3 },
   { name: "Periode & Arsip", href: "/periode", icon: Archive },
   { name: "Pengaturan", href: "/pengaturan", icon: Settings },
+  { name: "Panduan Guru (PDF)", href: "/panduan/cetak", icon: GraduationCap },
 ];
 
 export function Sidebar() {
