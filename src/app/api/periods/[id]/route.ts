@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPeriodById, updatePeriod, deletePeriod } from "@/lib/db/periods";
-import { PeriodFormSchema } from "@/lib/validations/period";
+import { PeriodFormSchema, PeriodUpdateSchema } from "@/lib/validations/period";
 
 export async function GET(
   request: NextRequest,
@@ -38,8 +38,7 @@ export async function PATCH(
     const body = await request.json();
     const userId = body.userId || "user-default-1";
 
-    const partialSchema = PeriodFormSchema.partial();
-    const validation = partialSchema.safeParse(body);
+    const validation = PeriodUpdateSchema.safeParse(body);
 
     if (!validation.success) {
       return NextResponse.json(

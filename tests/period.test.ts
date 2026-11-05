@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { PeriodFormSchema } from "../src/lib/validations/period.ts";
+import { PeriodFormSchema, PeriodUpdateSchema } from "../src/lib/validations/period.ts";
 
 test("Validasi Periode: Lolos jika data valid dan rentang tanggal benar", () => {
   const validData = {
@@ -60,4 +60,16 @@ test("Validasi Periode: Gagal jika status bukan active, closed, atau archived", 
 
   const result = PeriodFormSchema.safeParse(invalidStatusData);
   assert.equal(result.success, false);
+});
+
+test("Validasi Pembaruan Periode (PATCH): Lolos untuk pembaruan parsial status saja", () => {
+  const partialData = {
+    status: "active" as const,
+  };
+
+  const result = PeriodUpdateSchema.safeParse(partialData);
+  assert.equal(result.success, true);
+  if (result.success) {
+    assert.equal(result.data.status, "active");
+  }
 });
